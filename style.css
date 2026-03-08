@@ -1,0 +1,115 @@
+:root {
+    --pink-main: #ff3385;
+    --pink-light: #ffe6f2;
+    --glow-shadow: 0 0 20px rgba(255, 51, 133, 0.7);
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background: var(--pink-light);
+    font-family: 'Poppins', sans-serif;
+    overflow: hidden;
+    user-select: none;
+}
+
+/* Giriş Ekranı */
+#start-screen {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle, #fff0f6 0%, #ffcce0 100%);
+}
+
+.glow-text {
+    color: var(--pink-main);
+    text-shadow: 0 0 10px #fff, 0 0 20px var(--pink-main);
+    font-size: clamp(1.5rem, 5vw, 3rem);
+    text-align: center;
+    padding: 0 20px;
+}
+
+#button-wrapper {
+    position: relative;
+    margin-top: 50px;
+    width: 300px;
+    height: 150px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#start-btn {
+    padding: 20px 50px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    background: var(--pink-main);
+    color: white;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: var(--glow-shadow);
+    transition: transform 0.3s;
+}
+
+#start-btn:hover { transform: scale(1.05); }
+
+/* Balonlar */
+.balloon {
+    position: absolute;
+    width: 70px;
+    z-index: 10;
+    cursor: grab;
+    filter: drop-shadow(0 5px 10px rgba(0,0,0,0.1));
+}
+
+/* Oyun Arayüzü */
+.game-ui {
+    position: fixed;
+    top: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    z-index: 100;
+}
+
+.stat-box {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 10px 25px;
+    border-radius: 15px;
+    color: var(--pink-main);
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+/* Kaybetme Ekranı */
+#game-over-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 51, 133, 0.3);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background: white;
+    padding: 40px;
+    border-radius: 30px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+}
+
+.button-group button {
+    margin: 10px;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 10px;
+    background: var(--pink-main);
+    color: white;
+    cursor: pointer;
+}
