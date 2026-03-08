@@ -12,42 +12,37 @@ let highScore = localStorage.getItem('rekor') || 0;
 let gameActive = false;
 let objects = [];
 let gameSpeed = 3;
-let kova = { x: 0, y: 0, w: 100, h: 100, disabled: false };
+let kova = { x: 0, y: 0, w: 100, h: 80, disabled: false };
 
-// 1. GİRİŞ EKRANI BALONLARI
+// 1. GİRİŞ EKRANI BALONLARI (Fiziksel Engel)
 const container = document.getElementById('balloon-container');
 for(let i=0; i<15; i++) {
-    const b = document.createElement('img');
-    b.src = 'balon.png'; // Senin balon görselin
+    const b = document.createElement('div');
     b.className = 'balloon';
-    b.style.left = (Math.random() * 100 + 50) + 'px';
-    b.style.top = (Math.random() * 50 + 20) + 'px';
+    // Butonun etrafına rastgele dağıt
+    b.style.left = (Math.random() * 200 - 50) + 'px';
+    b.style.top = (Math.random() * 100 - 50) + 'px';
     container.appendChild(b);
 
     Draggable.create(b, {
         type: "x,y",
-        edgeResistance: 0.65,
-        onDragStart: function() { gsap.to(this.target, {scale: 1.2}); },
+        onDragStart: function() { gsap.to(this.target, {scale: 1.2, opacity: 0.8}); },
         onDragEnd: function() { gsap.to(this.target, {scale: 1}); }
     });
 }
 
-// 2. OYUN KURULUMU
+// 2. RESİMLERİ YÜKLE
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
-const images = {};
-const itemNames = ['item1', 'item2', 'item3', 'item4', 'item5', 'item6', 'item7', 'item8', 'kova', 'tas'];
-
-function loadImages() {
-    itemNames.forEach(name => {
-        const img = new Image();
-        img.src = `${name}.png`;
-        images[name] = img;
-    });
+const itemImages = [];
+for(let i=1; i<=8; i++) {
+    const img = new Image();
+    img.src = `item${i}.png`;
+    itemImages.push(img);
 }
-loadImages();
 
+// 3. OYUNU BAŞLAT
 document.getElementById('start-btn').onclick = () => {
     startScreen.style.display = 'none';
     gameContainer.style.display = 'block';
@@ -59,44 +54,88 @@ document.getElementById('start-btn').onclick = () => {
     animate();
 };
 
-// 3. OYUN DÖNGÜSÜ
+// 4. ÇİZİM FONKSİYONLARI (Kodla Tasarım)
+function drawKova() {
+    ctx.save();
+    if(kova.disabled) {
+        ctx.globalAlpha = 0.3; // Taş çarptığında şeffaflaşır
+    }
+    
+    // Pembe Kova Gövdesi
+    ctx.fillStyle = "#ff3385";
+    ctx.beginPath();
+    ctx.moveTo(kova.x, canvas.height - 100);
+    ctx.lineTo(kova.x + kova.w, canvas.height - 100);
+    ctx.lineTo(kova.x + kova.w - 15, canvas.height - 20);
+    ctx.lineTo(kova.x + 15, canvas.height - 20);
+    ctx.closePath();
+    ctx.fill();
+
+    // Kova Üzerindeki Kalp
+    ctx.fillStyle = "white";
+    ctx.font = "30px Arial";
+    ctx.fillText("❤️", kova.x + kova.w/2 - 15, canvas.height - 50);
+    
+    ctx.restore();
+}
+
+function drawObject(obj) {
+    ctx.save();
+    if (obj.isRock) {
+        // Taş Çizimi
+        ctx.fillStyle = "#555";
+        ctx.beginPath();
+        ctx.arc(obj.x + 30, obj.y + 30, 25, 0, Math.PI * 2);
+        ctx.fill();
+        // Taş detayı
+        ctx.fillStyle = "#333";
+        ctx.beginPath();
+        ctx.arc(obj.x + 20, obj.y + 20, 5, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+        // Alevli Resim Efekti
+        if(obj.isAflame) {
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = "#ff4500";
+            ctx.strokeStyle = "#ff4500";
+            ctx.lineWidth = 3;
+            ctx.strokeRect(obj.x, obj.y, 65, 65);
+        }
+        ctx.drawImage(obj.img, obj.x, obj.y, 65, 65);
+    }
+    ctx.restore();
+}
+
+// 5. ANA OYUN DÖNGÜSÜ
 function animate() {
     if(!gameActive) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Kova Çizimi
-    if(kova.disabled) ctx.globalAlpha = 0.5;
-    ctx.drawImage(images['kova'], kova.x, canvas.height - 120, kova.w, kova.h);
-    ctx.globalAlpha = 1.0;
+    drawKova();
 
     objects.forEach((obj, index) => {
         obj.y += obj.speed;
-        
-        // Alevli efekt (glow)
-        if(obj.isAflame) {
-            ctx.shadowBlur = 20;
-            ctx.shadowColor = "red";
-        }
+        drawObject(obj);
 
-        ctx.drawImage(obj.img, obj.x, obj.y, 60, 60);
-        ctx.shadowBlur = 0; // Reset
-
-        // Çarpışma Testi
-        if(obj.y + 60 > canvas.height - 120 && obj.x + 60 > kova.x && obj.x < kova.x + kova.w) {
+        // Çarpışma Kontrolü
+        if(obj.y + 60 > canvas.height - 100 && obj.x + 60 > kova.x && obj.x < kova.x + kova.w) {
             if(obj.isRock) {
                 stumbleKova();
             } else {
                 score += 2;
                 scoreEl.innerText = score;
-                gameSpeed += 0.05;
+                gameSpeed += 0.08; // Her yakalamada hızlanır
             }
             objects.splice(index, 1);
         }
 
-        // Kaçırma Kontrolü
+        // Kaçırma Kontrolü (Taş hariç biri düşerse yanar)
         if(obj.y > canvas.height) {
-            if(!obj.isRock) gameOver();
-            else objects.splice(index, 1);
+            if(!obj.isRock) {
+                gameOver();
+            } else {
+                objects.splice(index, 1);
+            }
         }
     });
 
@@ -106,33 +145,35 @@ function animate() {
 function spawnObject() {
     if(!gameActive) return;
 
-    let type = Math.random();
+    let chance = Math.random();
     let obj = {
-        x: Math.random() * (canvas.width - 60),
-        y: -60,
+        x: Math.random() * (canvas.width - 70),
+        y: -70,
         speed: gameSpeed,
         isRock: false,
-        isAflame: false
+        isAflame: false,
+        img: itemImages[Math.floor(Math.random() * 8)]
     };
 
-    if(type < 0.1) { // %10 Taş gelme ihtimali
-        obj.img = images['tas'];
+    if(chance < 0.12) { // %12 Taş
         obj.isRock = true;
-    } else if(type > 0.85) { // %15 Alevli hızlı resim
-        obj.img = images[`item${Math.floor(Math.random() * 8) + 1}`];
+    } else if(chance > 0.88) { // %12 Alevli Hızlı Resim
         obj.isAflame = true;
         obj.speed *= 1.8;
-    } else {
-        obj.img = images[`item${Math.floor(Math.random() * 8) + 1}`];
     }
 
     objects.push(obj);
-    setTimeout(spawnObject, 1000 / (gameSpeed / 2.5));
+    
+    // Hızlandıkça daha sık obje gönder
+    let nextSpawn = Math.max(400, 1200 - (gameSpeed * 50));
+    setTimeout(spawnObject, nextSpawn);
 }
 
+// 6. ÖZEL EFEKTLER
 function stumbleKova() {
     kova.disabled = true;
-    gsap.to("#gameCanvas", {x: 10, repeat: 5, yoyo: true, duration: 0.05});
+    // Ekranı salla
+    gsap.to(canvas, {x: 10, repeat: 10, yoyo: true, duration: 0.05, onComplete: () => gsap.set(canvas, {x: 0})});
     setTimeout(() => { kova.disabled = false; }, 3000);
 }
 
@@ -141,14 +182,21 @@ function gameOver() {
     document.getElementById('game-over-overlay').style.display = 'flex';
     document.getElementById('final-score').innerText = score;
     
-    const fails = ["Ouuu bişi olmaz!", "Çok iyidin ama nazar değdi!", "Bir sonrakine kesin rekor!", "Hadi pes etme!", "Kivi kedi seni geçti!"];
-    document.getElementById('result-title').innerText = fails[Math.floor(Math.random()*fails.length)];
+    const messages = [
+        "Ouuuyyy bişi olmazz",
+        "Çok iyidin ama o sonuncusu çok hızlıydı!",
+        "Hadi bir daha! Pes etmek yok.",
+        "Rekor çok yakındı.",
+        "Bu seferlik böyle olsun, tekrar dene!",
+        "Vay be, harika gidiyordun!"
+    ];
+    document.getElementById('result-title').innerText = messages[Math.floor(Math.random() * messages.length)];
 
     if(score > highScore) {
         highScore = score;
         localStorage.setItem('rekor', highScore);
-        document.getElementById('result-title').innerText = "VAAAAY! YENİ REKOR! 🎉";
-        confetti({ particleCount: 200, spread: 90 });
+        document.getElementById('result-title').innerText = "TEBRİKLER! YENİ REKOR! 🎉";
+        confetti({ particleCount: 250, spread: 100, origin: { y: 0.6 } });
     }
 }
 
@@ -163,11 +211,17 @@ function restartGame() {
     animate();
 }
 
-// Mouse Hareketi
+// Kontroller
 window.addEventListener('mousemove', (e) => {
     if(!kova.disabled) kova.x = Math.min(Math.max(e.clientX - kova.w/2, 0), canvas.width - kova.w);
 });
-// Dokunmatik Hareketi
+
 window.addEventListener('touchmove', (e) => {
+    e.preventDefault();
     if(!kova.disabled) kova.x = Math.min(Math.max(e.touches[0].clientX - kova.w/2, 0), canvas.width - kova.w);
-});
+}, {passive: false});
+
+window.onresize = () => {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+};
